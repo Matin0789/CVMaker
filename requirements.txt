@@ -1,0 +1,4 @@
+Django==4.2.14
+graphene-django==3.2.2
+django-filter==24.2
+graphql-core==3.2.3

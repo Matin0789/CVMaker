@@ -1,0 +1,102 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CV</title>
+  <link rel="icon" type="image/png" href="{% static 'images/favicon.png' %}">
+  <link rel="stylesheet" href="{% static 'style.css' %}" />
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="header-content">
+        <div class="photo-section">
+          <img id="avatar" src="{% static 'images/avatar.svg' %}" alt="Profile Photo" class="profile-photo">
+        </div>
+        <div class="text-content">
+          <div class="header-actions">
+            <button id="editBtn" class="edit-btn">Edit CV</button>
+          </div>
+          <h1 id="full_name">Loading...</h1>
+          <p id="title"></p>
+          <p class="contacts">
+            <span id="email"></span> · <span id="phone"></span> · <span id="location"></span>
+          </p>
+          <ul id="social" class="social"></ul>
+        </div>
+      </div>
+    </header>
+
+    <!-- Edit Form Modal -->
+    <div id="editModal" class="modal">
+      <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>Edit CV</h2>
+        <form id="editForm">
+          <div class="form-group">
+            <label for="edit_full_name">Full Name:</label>
+            <input type="text" id="edit_full_name" name="full_name" required>
+          </div>
+          <div class="form-group">
+            <label for="edit_title">Title:</label>
+            <input type="text" id="edit_title" name="title">
+          </div>
+          <div class="form-group">
+            <label for="edit_email">Email:</label>
+            <input type="email" id="edit_email" name="email">
+          </div>
+          <div class="form-group">
+            <label for="edit_phone">Phone:</label>
+            <input type="text" id="edit_phone" name="phone">
+          </div>
+          <div class="form-group">
+            <label for="edit_location">Location:</label>
+            <input type="text" id="edit_location" name="location">
+          </div>
+          <div class="form-group">
+            <label for="edit_photo_url">Photo URL:</label>
+            <input type="url" id="edit_photo_url" name="photo_url" placeholder="https://example.com/photo.jpg">
+          </div>
+          <div class="form-group">
+            <label for="photo_upload">Or Upload Photo:</label>
+            <input type="file" id="photo_upload" name="photo" accept="image/*">
+            <button type="button" id="uploadBtn" class="upload-btn">Upload Photo</button>
+          </div>
+          <div class="form-group">
+            <label for="edit_summary">Summary:</label>
+            <textarea id="edit_summary" name="summary" rows="4"></textarea>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="save-btn">Save Changes</button>
+            <button type="button" class="cancel-btn">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <section>
+      <h2>Summary</h2>
+      <p id="summary"></p>
+    </section>
+
+    <section>
+      <h2>Skills</h2>
+      <ul id="skills" class="tags"></ul>
+    </section>
+
+    <section>
+      <h2>Experience</h2>
+      <div id="experience"></div>
+    </section>
+
+    <section>
+      <h2>Education</h2>
+      <div id="education"></div>
+    </section>
+  </div>
+
+  <script src="{% static 'app.js' %}"></script>
+</body>
+</html> 

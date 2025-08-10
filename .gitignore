@@ -205,3 +205,21 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Django (project-specific)
+# Collected static files and user uploads should not be versioned
+backend/staticfiles/
+backend/media/
+
+# Environment files
+.env*
+*.env
+backend/.env
+
+# OS cruft
+.DS_Store
+Thumbs.db
+
+# Editor settings
+.vscode/
+.idea/
