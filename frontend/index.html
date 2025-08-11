@@ -9,6 +9,10 @@
 </head>
 <body>
   <div class="container">
+    <div style="margin-bottom: 24px;">
+      <label for="userSelector" style="font-weight: bold; color: #aab2ff;">Select User:</label>
+      <select id="userSelector" style="padding: 6px 12px; border-radius: 6px; border: 1px solid #2a335a; background: #1a2040; color: #eef1f7;"></select>
+    </div>
     <header>
       <div class="header-content">
         <div class="photo-section">
@@ -94,6 +98,12 @@
       <h2>Education</h2>
       <div id="education"></div>
     </section>
+  </div>
+
+  <!-- Debug Info -->
+  <div id="debug" style="position: fixed; bottom: 10px; right: 10px; background: rgba(0,0,0,0.8); color: white; padding: 10px; border-radius: 5px; font-size: 12px; max-width: 300px;">
+    <strong>Debug Info:</strong><br>
+    <span id="debug-status">Loading...</span>
   </div>
 
   <script src="/static/app.js"></script>

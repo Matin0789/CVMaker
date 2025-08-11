@@ -52,6 +52,19 @@ class PersonType(DjangoObjectType):
             "education",
         )
 
+    # Explicit resolvers to return related querysets as lists
+    def resolve_social_links(self, info):
+        return self.social_links.all()
+
+    def resolve_skills(self, info):
+        return self.skills.all()
+
+    def resolve_experiences(self, info):
+        return self.experiences.all()
+
+    def resolve_education(self, info):
+        return self.education.all()
+
 
 # Input types for mutations
 class PersonInput(graphene.InputObjectType):
@@ -202,6 +215,7 @@ class Mutation(graphene.ObjectType):
 class Query(graphene.ObjectType):
     person = graphene.Field(PersonType, id=graphene.ID(required=True))
     people = graphene.List(PersonType)
+    current_person = graphene.Field(PersonType)
 
     def resolve_person(root, info, id):
         return Person.objects.prefetch_related(
@@ -211,7 +225,13 @@ class Query(graphene.ObjectType):
     def resolve_people(root, info):
         return Person.objects.all().prefetch_related(
             "social_links", "skills", "experiences", "education"
+        )
+
+    def resolve_current_person(root, info):
+        # Return the first person (or you can modify this logic)
+        return Person.objects.all().prefetch_related(
+            "social_links", "skills", "experiences", "education"
         ).first()
 
 
-schema = graphene.Schema(query=Query, mutation=Mutation)
+schema = graphene.Schema(query=Query, mutation=Mutation, auto_camelcase=True)

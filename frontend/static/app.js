@@ -1,11 +1,24 @@
+function updateDebugStatus(message) {
+  const debugStatus = document.getElementById('debug-status');
+  if (debugStatus) {
+    debugStatus.textContent = message;
+    console.log('Debug Status:', message);
+  }
+}
+
 async function fetchGraphQL(query, variables) {
-  const res = await fetch('/graphql', {
+  updateDebugStatus('Sending GraphQL request...');
+  const res = await fetch('/graphql/', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ query, variables })
   });
   const json = await res.json();
-  if (json.errors) { console.error(json.errors); }
+  if (json.errors) { 
+    console.error('GraphQL errors:', json.errors);
+    updateDebugStatus('GraphQL errors: ' + json.errors.map(e => e.message).join(', '));
+  }
+  updateDebugStatus('GraphQL response received');
   return json.data;
 }
 
@@ -31,16 +44,91 @@ function closeModal() {
 function populateEditForm() {
   if (!currentPerson) return;
   
-  document.getElementById('edit_full_name').value = currentPerson.full_name || '';
+  document.getElementById('edit_full_name').value = currentPerson.fullName || '';
   document.getElementById('edit_title').value = currentPerson.title || '';
   document.getElementById('edit_email').value = currentPerson.email || '';
   document.getElementById('edit_phone').value = currentPerson.phone || '';
   document.getElementById('edit_location').value = currentPerson.location || '';
-  document.getElementById('edit_photo_url').value = currentPerson.photo_url || '';
+  document.getElementById('edit_photo_url').value = currentPerson.photoUrl || '';
   document.getElementById('edit_summary').value = currentPerson.summary || '';
 }
 
+let peopleList = [];
+let currentPerson = null;
+let currentPersonId = null;
+
+async function fetchAllPeople() {
+  const data = await fetchGraphQL(`
+    query {
+      people { id fullName }
+    }
+  `);
+  return data?.people || [];
+}
+
+function populateUserSelector(people) {
+  const selector = document.getElementById('userSelector');
+  if (!selector) return;
+  selector.innerHTML = people.map(
+    p => `<option value="${p.id}">${p.fullName}</option>`
+  ).join('');
+  selector.addEventListener('change', function() {
+    loadPersonCV(this.value);
+  });
+}
+
+async function loadPersonCV(personId) {
+  updateDebugStatus('Loading selected user CV...');
+  const data = await fetchGraphQL(`
+    query ($id: ID!) {
+      person(id: $id) {
+        id
+        fullName
+        title
+        email
+        phone
+        location
+        summary
+        photoUrl
+        socialLinks { platform url }
+        skills { name level }
+        experiences { company role startDate endDate description }
+        education { school degree field startYear endYear }
+      }
+    }
+  `, { id: personId });
+  const person = data?.person;
+  if (!person) {
+    updateDebugStatus('No person data found!');
+    return;
+  }
+  currentPerson = person;
+  currentPersonId = person.id;
+  updateDisplay();
+  updateDebugStatus('CV loaded successfully');
+}
+
+// Override load() to support multi-user
+async function load() {
+  updateDebugStatus('Loading people list...');
+  peopleList = await fetchAllPeople();
+  if (peopleList.length === 0) {
+    updateDebugStatus('No users found!');
+    return;
+  }
+  populateUserSelector(peopleList);
+  // Load the first user by default
+  loadPersonCV(peopleList[0].id);
+}
+
+// Update updatePerson to use currentPersonId
 async function updatePerson(formData) {
+  updateDebugStatus('Updating person...');
+  if (!currentPersonId) {
+    updateDebugStatus('Error: No person ID found');
+    alert('Error: No person data loaded. Please refresh the page.');
+    return;
+  }
   const mutation = `
     mutation UpdatePerson($id: ID!, $input: PersonInput!) {
       updatePerson(id: $id, input: $input) {
@@ -48,44 +136,43 @@ async function updatePerson(formData) {
         errors
         person {
           id
-          full_name
+          fullName
           title
           email
           phone
           location
           summary
-          photo_url
+          photoUrl
         }
       }
     }
   `;
-
   const variables = {
-    id: currentPerson.id,
+    id: currentPersonId,
     input: {
-      full_name: formData.get('full_name'),
+      fullName: formData.get('full_name'),
       title: formData.get('title'),
       email: formData.get('email'),
       phone: formData.get('phone'),
       location: formData.get('location'),
       summary: formData.get('summary'),
-      photo_url: formData.get('photo_url')
+      photoUrl: formData.get('photo_url')
     }
   };
-
   try {
     const result = await fetchGraphQL(mutation, variables);
     if (result.updatePerson.success) {
-      // Update the current person data and refresh the display
       currentPerson = { ...currentPerson, ...result.updatePerson.person };
       updateDisplay();
       closeModal();
+      updateDebugStatus('CV updated successfully!');
       alert('CV updated successfully!');
     } else {
+      updateDebugStatus('Error updating CV: ' + result.updatePerson.errors.join(', '));
       alert('Error updating CV: ' + result.updatePerson.errors.join(', '));
     }
   } catch (error) {
-    console.error('Error updating person:', error);
+    updateDebugStatus('Error updating CV: ' + error.message);
     alert('Error updating CV. Please try again.');
   }
 }
@@ -95,56 +182,36 @@ function updateDisplay() {
 
   const avatar = document.getElementById('avatar');
   if (avatar) {
-    avatar.src = currentPerson.photo_url || '/static/images/avatar.svg';
+    avatar.src = currentPerson.photoUrl || '/static/images/avatar.svg';
   }
 
-  text(document.getElementById('full_name'), currentPerson.full_name);
+  text(document.getElementById('full_name'), currentPerson.fullName);
   text(document.getElementById('title'), currentPerson.title);
   text(document.getElementById('email'), currentPerson.email);
   text(document.getElementById('phone'), currentPerson.phone);
   text(document.getElementById('location'), currentPerson.location);
   text(document.getElementById('summary'), currentPerson.summary);
-}
-
-let currentPerson = null;
-
-async function load() {
-  const data = await fetchGraphQL(`
-    query {
-      people { id full_name title email phone location summary photo_url
-        social_links { platform url }
-        skills { name level }
-        experiences { company role start_date end_date description }
-        education { school degree field start_year end_year }
-      }
-    }
-  `);
-  const person = data?.people?.[0];
-  if (!person) return;
-
-  currentPerson = person;
-  updateDisplay();
 
   const social = document.getElementById('social');
-  social.innerHTML = person.social_links.map(s => `<li><a href="${s.url}" target="_blank" rel="noreferrer">${s.platform}</a></li>`).join('');
+  social.innerHTML = (currentPerson.socialLinks || []).map(s => `<li><a href="${s.url}" target="_blank" rel="noreferrer">${s.platform}</a></li>`).join('');
 
   const skills = document.getElementById('skills');
-  skills.innerHTML = person.skills.map(s => `<li>${s.name}</li>`).join('');
+  skills.innerHTML = (currentPerson.skills || []).map(s => `<li>${s.name}</li>`).join('');
 
   const exp = document.getElementById('experience');
-  exp.innerHTML = person.experiences.map(e => `
+  exp.innerHTML = (currentPerson.experiences || []).map(e => `
     <div class="card">
       <h3>${e.role} — ${e.company}</h3>
-      <div class="meta">${formatDateRange(e.start_date, e.end_date)}</div>
+      <div class="meta">${formatDateRange(e.startDate, e.endDate)}</div>
       <p>${e.description || ''}</p>
     </div>
   `).join('');
 
   const edu = document.getElementById('education');
-  edu.innerHTML = person.education.map(ed => `
+  edu.innerHTML = (currentPerson.education || []).map(ed => `
     <div class="card">
       <h3>${ed.degree} — ${ed.school}</h3>
-      <div class="meta">${ed.field || ''} • ${ed.start_year} — ${ed.end_year || 'Present'}</div>
+      <div class="meta">${ed.field || ''} • ${ed.startYear} — ${ed.endYear || 'Present'}</div>
     </div>
   `).join('');
 }
@@ -174,11 +241,16 @@ document.addEventListener('DOMContentLoaded', function() {
   // Form submission
   const editForm = document.getElementById('editForm');
   if (editForm) {
+    console.log('Edit form found, adding submit listener');
     editForm.addEventListener('submit', function(e) {
       e.preventDefault();
+      console.log('Form submitted!');
       const formData = new FormData(editForm);
+      console.log('Form data:', Object.fromEntries(formData));
       updatePerson(formData);
     });
+  } else {
+    console.error('Edit form not found!');
   }
 
   // Cancel button
